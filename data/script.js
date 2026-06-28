@@ -95,6 +95,8 @@ ws.onmessage = (event) => {
   addMessage(data);
 };
 
+
+
 // ----------------------
 // Add Message
 // ----------------------
@@ -145,6 +147,36 @@ ${data.message}
   chat.appendChild(bubble);
 
   chat.scrollTop = chat.scrollHeight;
+}
+
+function renderUsers(list)
+{
+    const users = document.getElementById("users");
+
+    if (!users) return;
+
+    users.innerHTML = "";
+
+    list.forEach(name => {
+
+        const color = getColor(name);
+
+        users.innerHTML += `
+            <div class="userItem">
+
+                <div class="avatar"
+                    style="width:36px;height:36px;font-size:14px;background:${color};">
+
+                    ${name.charAt(0).toUpperCase()}
+
+                </div>
+
+                <div>${name}</div>
+
+            </div>
+        `;
+
+    });
 }
 
 // ----------------------

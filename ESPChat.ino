@@ -83,6 +83,7 @@ void broadcastUserList()
 
     webSocket.broadcastTXT(json);
 
+    Serial.println("Broadcasting user list:");
     Serial.println(json);
 }
 
@@ -126,9 +127,10 @@ void webSocketEvent(uint8_t num,
 
             clients[num].connected = false;
             clients[num].username = "";
-
-            break;
+            
+            broadcastUserList();
         }
+        break;
 
         case WStype_TEXT:
         {
@@ -182,6 +184,8 @@ void handlePacket(uint8_t client, String payload)
                 Serial.print(client);
                 Serial.print(": ");
                 Serial.println(clients[client].username);
+
+                broadcastUserList();
 
                 return;
             }
