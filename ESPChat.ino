@@ -1,3 +1,4 @@
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -9,6 +10,15 @@ const char* password = "12345678";
 
 WebServer server(80);
 WebSocketsServer webSocket(81);
+#define MAX_CLIENTS 8
+
+struct ClientInfo
+{
+    bool connected;
+    String username;
+};
+
+ClientInfo clients[MAX_CLIENTS];
 
 void handleRoot() {
     File file = LittleFS.open("/index.html", "r");
@@ -44,6 +54,37 @@ void handleJS() {
 
     server.streamFile(file, "application/javascript");
     file.close();
+}
+void handlePacket(uint8_t client, String payload);
+
+void broadcastUserList()
+{
+    JsonDocument doc;
+
+    doc["type"] = "users";
+
+    JsonArray users = doc["users"].to<JsonArray>();
+
+    int online = 0;
+
+    for(int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if(clients[i].connected && clients[i].username != "")
+        {
+            users.add(clients[i].username);
+            online++;
+        }
+    }
+
+    doc["online"] = online;
+
+    String json;
+    serializeJson(doc, json);
+
+    webSocket.broadcastTXT(json);
+
+    Serial.println("Broadcasting user list:");
+    Serial.println(json);
 }
 
 void webSocketEvent(uint8_t num,
@@ -81,41 +122,102 @@ void webSocketEvent(uint8_t num,
         break;
 
         case WStype_DISCONNECTED:
-
-            Serial.printf("Client %u Disconnected\n", num);
-
-            break;
-
-        case WStype_TEXT:
         {
-            String msg = (char*)payload;
-
-            // Broadcast to everyone
-            webSocket.broadcastTXT(msg);
-
-            // Blink LED
-            digitalWrite(LED_PIN, HIGH);
-            delay(100);
-            digitalWrite(LED_PIN, LOW);
-
-            // Save to LittleFS
-            File file = LittleFS.open("/chat.log", FILE_APPEND);
-
-            if(file)
+            Serial.printf("Client %u Disconnected\n", num);
+        
+            String name = clients[num].username;
+        
+            if (name != "")
             {
-                file.println(msg);
-                file.close();
+                broadcastSystemMessage(name + " left the chat");
             }
-
+        
+            clients[num].connected = false;
+            clients[num].username = "";
+        
+            broadcastUserList();
         }
         break;
 
-        default:
-            break;
-
+        case WStype_TEXT:
+        {
+            handlePacket(num, String((char*)payload));
+        }
+        break;
     }
 
 }
+
+void broadcastSystemMessage(String text)
+{
+    JsonDocument doc;
+
+    doc["type"] = "system";
+    doc["message"] = text;
+
+    String json;
+    serializeJson(doc, json);
+
+    webSocket.broadcastTXT(json);
+
+    Serial.println(json);
+}
+
+void handlePacket(uint8_t client, String payload)
+        {
+            JsonDocument doc;
+        
+            DeserializationError err = deserializeJson(doc, payload);
+        
+            if (err)
+            {
+                Serial.println("Invalid JSON");
+                return;
+            }
+        
+            String type = doc["type"];
+        
+            if (type == "message")
+            {
+                Serial.println("Message");
+        
+                webSocket.broadcastTXT(payload);
+        
+                digitalWrite(LED_PIN, HIGH);
+                delay(100);
+                digitalWrite(LED_PIN, LOW);
+        
+                File file = LittleFS.open("/chat.log", FILE_APPEND);
+        
+                if (file)
+                {
+                    file.println(payload);
+                    file.close();
+                }
+        
+                return;
+            }
+        
+           if(type=="join")
+            {
+                clients[client].connected = true;
+                clients[client].username = doc["username"].as<String>();
+
+                broadcastSystemMessage(clients[client].username + " joined the chat");
+
+                broadcastUserList();
+
+                Serial.print("Registered Client ");
+                Serial.print(client);
+                Serial.print(": ");
+                Serial.println(clients[client].username);
+
+                broadcastUserList();
+
+                return;
+            }
+        }
+
 void createChatLog()
 {
     if(!LittleFS.exists("/chat.log"))
@@ -126,6 +228,7 @@ void createChatLog()
             file.close();
     }
 }
+
 void setup()
 {
 
