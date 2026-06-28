@@ -10,6 +10,15 @@ const char* password = "12345678";
 
 WebServer server(80);
 WebSocketsServer webSocket(81);
+#define MAX_CLIENTS 8
+
+struct ClientInfo
+{
+    bool connected;
+    String username;
+};
+
+ClientInfo clients[MAX_CLIENTS];
 
 void handleRoot() {
     File file = LittleFS.open("/index.html", "r");
@@ -47,6 +56,36 @@ void handleJS() {
     file.close();
 }
 void handlePacket(uint8_t client, String payload);
+
+void broadcastUserList()
+{
+    JsonDocument doc;
+
+    doc["type"] = "users";
+
+    JsonArray users = doc["users"].to<JsonArray>();
+
+    int online = 0;
+
+    for(int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if(clients[i].connected && clients[i].username != "")
+        {
+            users.add(clients[i].username);
+            online++;
+        }
+    }
+
+    doc["online"] = online;
+
+    String json;
+    serializeJson(doc, json);
+
+    webSocket.broadcastTXT(json);
+
+    Serial.println(json);
+}
+
 void webSocketEvent(uint8_t num,
                     WStype_t type,
                     uint8_t * payload,
@@ -82,20 +121,20 @@ void webSocketEvent(uint8_t num,
         break;
 
         case WStype_DISCONNECTED:
-
+        {
             Serial.printf("Client %u Disconnected\n", num);
 
+            clients[num].connected = false;
+            clients[num].username = "";
+
             break;
+        }
 
         case WStype_TEXT:
         {
-            handlePacket(num, (char*)payload);
+            handlePacket(num, String((char*)payload));
         }
         break;
-
-        default:
-            break;
-
     }
 
 }
@@ -134,10 +173,16 @@ void handlePacket(uint8_t client, String payload)
                 return;
             }
         
-            if (type == "join")
+           if(type=="join")
             {
-                Serial.println("Join packet");
-        
+                clients[client].connected = true;
+                clients[client].username = doc["username"].as<String>();
+
+                Serial.print("Registered Client ");
+                Serial.print(client);
+                Serial.print(": ");
+                Serial.println(clients[client].username);
+
                 return;
             }
         }
@@ -152,6 +197,7 @@ void createChatLog()
             file.close();
     }
 }
+
 void setup()
 {
 

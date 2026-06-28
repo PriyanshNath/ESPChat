@@ -20,102 +20,93 @@ let username = "";
 // ----------------------
 
 window.onload = () => {
+  const saved = localStorage.getItem("username");
 
-    const saved = localStorage.getItem("username");
+  if (saved) {
+    loginName.value = saved;
 
-    if(saved){
-
-        loginName.value = saved;
-
-        joinChat();
-
-    }
-
+    joinChat();
+  }
 };
 
 // ----------------------
 // Join Chat
 // ----------------------
 
-function joinChat(){
+function joinChat() {
+  username = loginName.value.trim();
 
-    username = loginName.value.trim();
+  if (username === "") return;
 
-    if(username==="")
-        return;
+  localStorage.setItem("username", username);
 
-    localStorage.setItem("username",username);
+  loginScreen.style.display = "none";
 
-    loginScreen.style.display="none";
+  chatScreen.style.display = "flex";
 
-    chatScreen.style.display="flex";
-
-    messageInput.focus();
-
+  messageInput.focus();
 }
 
 // ----------------------
 // Send Message
 // ----------------------
 
-function send(){
+function send() {
+  const text = messageInput.value.trim();
 
-    const text = messageInput.value.trim();
+  if (text === "") return;
 
-    if(text==="")
-        return;
+  const packet = {
+    id: Date.now(),
 
-    const packet={
+    type: "message",
 
-        id:Date.now(),
+    username: username,
 
-        type:"message",
+    message: text,
 
-        username:username,
+    time: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
 
-        message:text,
+      minute: "2-digit",
+    }),
+  };
 
-        time:new Date().toLocaleTimeString([],{
+  ws.send(JSON.stringify(packet));
 
-            hour:"2-digit",
-
-            minute:"2-digit"
-
-        })
-
-    };
-
-    ws.send(JSON.stringify(packet));
-
-    messageInput.value="";
-
+  messageInput.value = "";
 }
 
 // ----------------------
 // Receive Message
 // ----------------------
 
-ws.onmessage=(event)=>{
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
 
-    const data=JSON.parse(event.data);
+  if (data.type === "users") {
+    renderUsers(data.users);
 
-    addMessage(data);
+    document.getElementById("onlineCount").textContent = data.online;
 
+    return;
+  }
+
+  addMessage(data);
 };
 
 // ----------------------
 // Add Message
 // ----------------------
 
-function addMessage(data){
+function addMessage(data) {
+  const bubble = document.createElement("div");
 
-    const bubble=document.createElement("div");
+  bubble.className = "msg";
 
-    bubble.className="msg";
+  const color = getColor(data.username);
 
-    const color=getColor(data.username);
-
-    bubble.innerHTML=`
+  bubble.innerHTML = `
 
 <div class="avatar" style="background:${color}">
 
@@ -151,66 +142,62 @@ ${data.message}
 
 `;
 
-    chat.appendChild(bubble);
+  chat.appendChild(bubble);
 
-    chat.scrollTop=chat.scrollHeight;
-
+  chat.scrollTop = chat.scrollHeight;
 }
 
 // ----------------------
 // Avatar Color
 // ----------------------
 
-function getColor(name){
+function getColor(name) {
+  const colors = [
+    "#5865F2",
+    "#57F287",
+    "#FEE75C",
+    "#EB459E",
+    "#ED4245",
+    "#3BA55D",
+    "#FAA61A",
+  ];
 
-    const colors=[
+  let hash = 0;
 
-"#5865F2",
-"#57F287",
-"#FEE75C",
-"#EB459E",
-"#ED4245",
-"#3BA55D",
-"#FAA61A"
+  for (let i = 0; i < name.length; i++) hash += name.charCodeAt(i);
 
-];
-
-    let hash=0;
-
-    for(let i=0;i<name.length;i++)
-        hash+=name.charCodeAt(i);
-
-    return colors[hash%colors.length];
-
+  return colors[hash % colors.length];
 }
 
 // ----------------------
 // Enter to Send
 // ----------------------
 
-messageInput.addEventListener("keydown",(e)=>{
-
-    if(e.key==="Enter")
-        send();
-
+messageInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") send();
 });
 
 // ----------------------
 // Connected
 // ----------------------
 
-ws.onopen=()=>{
+ws.onopen = () => {
+  console.log("Connected");
 
-    console.log("Connected");
-
+  if (username !== "") {
+    ws.send(
+      JSON.stringify({
+        type: "join",
+        username: username,
+      }),
+    );
+  }
 };
 
 // ----------------------
 // Reconnect
 // ----------------------
 
-ws.onclose=()=>{
-
-    console.log("Disconnected");
-
+ws.onclose = () => {
+  console.log("Disconnected");
 };
