@@ -1,38 +1,77 @@
 # 💬 ESPChat
 
-ESPChat is an offline real-time chat application running on an ESP32.
+A modern offline real-time chat application built with an ESP32.
 
-## Features
+![ESP32](https://img.shields.io/badge/ESP32-WebServer-blue)
+![WebSockets](https://img.shields.io/badge/WebSockets-Live-success)
+![LittleFS](https://img.shields.io/badge/LittleFS-Storage-orange)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
-- 🌐 ESP32 Hotspot
+---
+
+## ✨ Features
+
+- 📡 ESP32 Wi-Fi Hotspot
 - 💬 Real-time WebSocket chat
-- 💾 LittleFS storage
-- 💡 LED notification
-- 📱 Mobile friendly
+- 💾 Persistent chat history using LittleFS
+- 👤 Username memory
+- 💡 LED notification on new messages
+- 📱 Mobile-friendly interface
 - 🎨 Discord-inspired UI
-- 💾 Chat history
 
-## Hardware
+---
+
+## 🛠 Hardware
 
 - ESP32 Dev Module
 
-## Libraries
+---
 
+## 📚 Libraries
+
+- WiFi
 - WebServer
 - WebSocketsServer
 - LittleFS
 - ArduinoJson
 
-## Roadmap
+---
 
-- [x] WebSocket Chat
-- [x] Chat History
+## 🚀 Getting Started
+
+1. Install the required libraries.
+2. Open the project in Arduino IDE.
+3. Upload `ESPChat.ino`.
+4. Upload the `data/` folder to LittleFS.
+5. Connect to the ESP32 hotspot.
+6. Open `http://192.168.4.1`.
+
+---
+
+## 🗺 Roadmap
+
+- [x] Wi-Fi Hotspot
+- [x] Live Chat
+- [x] WebSockets
+- [x] LittleFS
+- [x] Persistent Chat History
 - [x] Login Screen
 - [ ] Online Users
 - [ ] Typing Indicator
+- [ ] Emoji Picker
 - [ ] File Sharing
 - [ ] Multiple Rooms
 
-## License
+---
 
-MIT
+## 📸 Screenshots
+
+_Coming soon._
+
+---
+
+## 👨‍💻 Author
+
+**Priyansh**
+
+Built as a hobby project to learn ESP32, WebSockets, and embedded web development.
