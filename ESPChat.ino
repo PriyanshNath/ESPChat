@@ -1,3 +1,4 @@
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -45,7 +46,7 @@ void handleJS() {
     server.streamFile(file, "application/javascript");
     file.close();
 }
-
+void handlePacket(uint8_t client, String payload);
 void webSocketEvent(uint8_t num,
                     WStype_t type,
                     uint8_t * payload,
@@ -88,25 +89,7 @@ void webSocketEvent(uint8_t num,
 
         case WStype_TEXT:
         {
-            String msg = (char*)payload;
-
-            // Broadcast to everyone
-            webSocket.broadcastTXT(msg);
-
-            // Blink LED
-            digitalWrite(LED_PIN, HIGH);
-            delay(100);
-            digitalWrite(LED_PIN, LOW);
-
-            // Save to LittleFS
-            File file = LittleFS.open("/chat.log", FILE_APPEND);
-
-            if(file)
-            {
-                file.println(msg);
-                file.close();
-            }
-
+            handlePacket(num, (char*)payload);
         }
         break;
 
@@ -116,6 +99,49 @@ void webSocketEvent(uint8_t num,
     }
 
 }
+void handlePacket(uint8_t client, String payload)
+        {
+            JsonDocument doc;
+        
+            DeserializationError err = deserializeJson(doc, payload);
+        
+            if (err)
+            {
+                Serial.println("Invalid JSON");
+                return;
+            }
+        
+            String type = doc["type"];
+        
+            if (type == "message")
+            {
+                Serial.println("Message");
+        
+                webSocket.broadcastTXT(payload);
+        
+                digitalWrite(LED_PIN, HIGH);
+                delay(100);
+                digitalWrite(LED_PIN, LOW);
+        
+                File file = LittleFS.open("/chat.log", FILE_APPEND);
+        
+                if (file)
+                {
+                    file.println(payload);
+                    file.close();
+                }
+        
+                return;
+            }
+        
+            if (type == "join")
+            {
+                Serial.println("Join packet");
+        
+                return;
+            }
+        }
+
 void createChatLog()
 {
     if(!LittleFS.exists("/chat.log"))
