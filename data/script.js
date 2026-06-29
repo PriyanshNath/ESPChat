@@ -2,7 +2,7 @@
 // ESPChat v2 - script.js
 // ============================
 
-const ws = new WebSocket("ws://" + location.hostname + ":81/");
+let ws = null;
 
 const loginScreen = document.getElementById("loginScreen");
 const chatScreen = document.getElementById("chatScreen");
@@ -14,6 +14,12 @@ const chat = document.getElementById("chat");
 const messageInput = document.getElementById("message");
 
 let username = "";
+
+const typingIndicator =
+document.getElementById("typingIndicator");
+
+let typing = false;
+let typingTimeout;
 
 // ----------------------
 // Auto Login
@@ -34,17 +40,56 @@ window.onload = () => {
 // ----------------------
 
 function joinChat() {
-  username = loginName.value.trim();
 
-  if (username === "") return;
+    console.log("JOIN CALLED");
+    username = loginName.value.trim();
 
-  localStorage.setItem("username", username);
+    if (username === "") return;
 
-  loginScreen.style.display = "none";
+    localStorage.setItem("username", username);
+    loginScreen.style.display = "none";
+    chatScreen.style.display = "flex";
+    messageInput.focus();
 
-  chatScreen.style.display = "flex";
+    if (ws && (ws.readyState === WebSocket.OPEN ||
+               ws.readyState === WebSocket.CONNECTING)) {
+        return;
+    }
 
-  messageInput.focus();
+    ws = new WebSocket("ws://" + location.hostname + ":81/");
+
+    ws.onopen = () => {
+        console.log("Connected");
+
+        ws.send(JSON.stringify({
+            type: "join",
+            username: username
+        }));
+
+        setConnectionStatus(true);
+    };
+
+    ws.onmessage = handleSocketMessage;
+
+    ws.onclose = () => {
+        console.log("Disconnected");
+        setConnectionStatus(false);
+        typingIndicator.textContent = "";
+    };
+
+    ws.onerror = () => {
+        setConnectionStatus(false);
+    };
+
+}
+
+function setConnectionStatus(connected) {
+    const status = document.getElementById("connectionStatus");
+
+    if (!status) return;
+
+    status.firstChild.textContent =
+        connected ? "🟢 Connected • " : "🔴 Disconnected • ";
 }
 
 // ----------------------
@@ -54,7 +99,7 @@ function joinChat() {
 function send() {
   const text = messageInput.value.trim();
 
-  if (text === "") return;
+  if (text === "" || !ws || ws.readyState !== WebSocket.OPEN) return;
 
   const packet = {
     id: Date.now(),
@@ -75,13 +120,24 @@ function send() {
   ws.send(JSON.stringify(packet));
 
   messageInput.value = "";
+
+  ws.send(JSON.stringify({
+      type:"typing",
+      username:username,
+      typing:false
+  }));
+
+  typing = false;
+  clearTimeout(typingTimeout);
+
+
 }
 
 // ----------------------
 // Receive Message
 // ----------------------
 
-ws.onmessage = (event) => {
+function handleSocketMessage(event) {
 
     const data = JSON.parse(event.data);
 
@@ -101,6 +157,19 @@ ws.onmessage = (event) => {
         return;
     }
 
+    if (data.type === "typing")
+    {
+        if (data.username === username)
+            return;
+
+        if (data.typing)
+            typingIndicator.textContent = `${data.username} is typing...`;
+        else
+            typingIndicator.textContent = "";
+
+        return;
+    }
+
     if (data.type === "message")
     {
         addMessage(data);
@@ -108,7 +177,7 @@ ws.onmessage = (event) => {
         return;
     }
 
-};
+}
 
 
 
@@ -234,30 +303,41 @@ function getColor(name) {
 // ----------------------
 
 messageInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") send();
+  if (e.key === "Enter")
+    send();
 });
 
-// ----------------------
-// Connected
-// ----------------------
+messageInput.addEventListener("input",()=>{
 
-ws.onopen = () => {
-  console.log("Connected");
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-  if (username !== "") {
-    ws.send(
-      JSON.stringify({
-        type: "join",
-        username: username,
-      }),
-    );
-  }
-};
+    if(!typing){
 
-// ----------------------
-// Reconnect
-// ----------------------
+        ws.send(JSON.stringify({
 
-ws.onclose = () => {
-  console.log("Disconnected");
-};
+            type:"typing",
+            username:username,
+            typing:true
+
+        }));
+
+        typing = true;
+    }
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(()=>{
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type:"typing",
+                username:username,
+                typing:false
+            }));
+        }
+
+        typing = false;
+
+    },1000);
+
+});

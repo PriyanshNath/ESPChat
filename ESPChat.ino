@@ -55,7 +55,6 @@ void handleJS() {
     server.streamFile(file, "application/javascript");
     file.close();
 }
-void handlePacket(uint8_t client, String payload);
 
 void broadcastUserList()
 {
@@ -165,6 +164,7 @@ void broadcastSystemMessage(String text)
 
 void handlePacket(uint8_t client, String payload)
         {
+            Serial.println(payload);
             JsonDocument doc;
         
             DeserializationError err = deserializeJson(doc, payload);
@@ -177,6 +177,17 @@ void handlePacket(uint8_t client, String payload)
         
             String type = doc["type"];
         
+            if(type=="typing")
+            {
+                webSocket.broadcastTXT(payload);
+            
+                digitalWrite(LED_PIN,HIGH);
+                delay(15);
+                digitalWrite(LED_PIN,LOW);
+            
+                return;
+            }
+
             if (type == "message")
             {
                 Serial.println("Message");
@@ -211,8 +222,6 @@ void handlePacket(uint8_t client, String payload)
                 Serial.print(client);
                 Serial.print(": ");
                 Serial.println(clients[client].username);
-
-                broadcastUserList();
 
                 return;
             }
