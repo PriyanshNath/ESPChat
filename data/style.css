@@ -178,6 +178,7 @@ header{
     gap:10px;
     padding:18px;
     background:#2b2d31;
+    position:relative;
 }
 
 .bottom input{
@@ -205,6 +206,50 @@ button{
 
 button:hover{
     background:#4752C4;
+}
+
+.emojiToggle{
+    min-width:48px;
+    padding:12px;
+    font-size:20px;
+    background:#1e1f22;
+}
+
+.emojiToggle:hover,
+.emojiToggle[aria-expanded="true"]{
+    background:#3d3f45;
+}
+
+.emojiPicker{
+    position:absolute;
+    left:18px;
+    bottom:76px;
+    display:grid;
+    grid-template-columns:repeat(4, 46px);
+    gap:6px;
+    padding:10px;
+    border:1px solid #444;
+    border-radius:12px;
+    background:#1e1f22;
+    box-shadow:0 12px 30px rgba(0,0,0,.4);
+    z-index:10;
+}
+
+.emojiPicker[hidden]{
+    display:none;
+}
+
+.emojiPicker button{
+    width:46px;
+    height:42px;
+    padding:0;
+    background:transparent;
+    font-size:22px;
+}
+
+.emojiPicker button:hover{
+    background:#3d3f45;
+    transform:scale(1.08);
 }
 
 @keyframes fade{

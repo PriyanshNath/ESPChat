@@ -58,7 +58,7 @@ A modern offline real-time chat application built with an ESP32.
 - [x] Login Screen
 - [x] Online Users
 - [x] Typing Indicator
-- [ ] Emoji Picker
+- [x] Emoji Picker
 - [ ] File Sharing
 - [ ] Multiple Rooms
 

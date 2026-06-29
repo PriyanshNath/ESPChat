@@ -13,6 +13,9 @@ const chat = document.getElementById("chat");
 
 const messageInput = document.getElementById("message");
 
+const emojiToggle = document.getElementById("emojiToggle");
+const emojiPicker = document.getElementById("emojiPicker");
+
 let username = "";
 
 const typingIndicator =
@@ -303,9 +306,53 @@ function getColor(name) {
 // ----------------------
 
 messageInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter")
+  if (e.key === "Enter") {
     send();
+    closeEmojiPicker();
+  }
 });
+
+emojiToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    const opening = emojiPicker.hidden;
+    emojiPicker.hidden = !opening;
+    emojiToggle.setAttribute("aria-expanded", String(opening));
+});
+
+emojiPicker.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-emoji]");
+
+    if (!button) return;
+
+    const emoji = button.dataset.emoji;
+    const start = messageInput.selectionStart ?? messageInput.value.length;
+    const end = messageInput.selectionEnd ?? messageInput.value.length;
+
+    messageInput.value =
+        messageInput.value.slice(0, start) +
+        emoji +
+        messageInput.value.slice(end);
+
+    const cursor = start + emoji.length;
+    messageInput.focus();
+    messageInput.setSelectionRange(cursor, cursor);
+});
+
+document.addEventListener("click", (event) => {
+    if (!emojiPicker.contains(event.target) && event.target !== emojiToggle) {
+        closeEmojiPicker();
+    }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeEmojiPicker();
+});
+
+function closeEmojiPicker() {
+    emojiPicker.hidden = true;
+    emojiToggle.setAttribute("aria-expanded", "false");
+}
 
 messageInput.addEventListener("input",()=>{
 
