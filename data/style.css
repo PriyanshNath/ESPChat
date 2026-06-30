@@ -182,6 +182,7 @@ header{
 
 .bottom input{
     flex:1;
+    min-width:0;
 }
 
 input{
@@ -207,6 +208,128 @@ button:hover{
     background:#4752C4;
 }
 
+<<<<<<< Updated upstream
+=======
+.emojiToggle{
+    min-width:48px;
+    padding:12px;
+    font-size:20px;
+    background:#1e1f22;
+}
+
+.attachButton{
+    min-width:48px;
+    padding:12px;
+    font-size:20px;
+    background:#1e1f22;
+}
+
+.attachButton:hover{
+    background:#3d3f45;
+}
+
+button:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+#uploadStatus{
+    position:absolute;
+    right:18px;
+    bottom:76px;
+    max-width:60%;
+    padding:5px 9px;
+    border-radius:6px;
+    background:#1e1f22;
+    color:#b5bac1;
+    font-size:12px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+#uploadStatus:empty{
+    display:none;
+}
+
+.emojiToggle:hover,
+.emojiToggle[aria-expanded="true"]{
+    background:#3d3f45;
+}
+
+.emojiPicker{
+    position:absolute;
+    left:18px;
+    bottom:76px;
+    display:grid;
+    grid-template-columns:repeat(4, 46px);
+    gap:6px;
+    padding:10px;
+    border:1px solid #444;
+    border-radius:12px;
+    background:#1e1f22;
+    box-shadow:0 12px 30px rgba(0,0,0,.4);
+    z-index:10;
+}
+
+.emojiPicker[hidden]{
+    display:none;
+}
+
+.emojiPicker button{
+    width:46px;
+    height:42px;
+    padding:0;
+    background:transparent;
+    font-size:22px;
+}
+
+.emojiPicker button:hover{
+    background:#3d3f45;
+    transform:scale(1.08);
+}
+
+.fileCard{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:min(360px, 100%);
+    margin-top:8px;
+    padding:12px;
+    border:1px solid #444;
+    border-radius:10px;
+    background:#2b2d31;
+}
+
+.fileIcon{
+    font-size:28px;
+}
+
+.fileDetails{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+}
+
+.fileName{
+    color:#8ea1e1;
+    font-weight:600;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.fileName:hover{
+    color:#aebcff;
+}
+
+.fileSize{
+    color:#949ba4;
+    font-size:12px;
+}
+
+>>>>>>> Stashed changes
 @keyframes fade{
 
 from{

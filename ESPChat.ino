@@ -4,6 +4,7 @@
 #include <WebSocketsServer.h>
 #include <LittleFS.h>
 #define LED_PIN 2
+#define MAX_FILE_SIZE (200 * 1024)
 
 const char* ssid = "ESP32 Chat";
 const char* password = "12345678";
@@ -19,6 +20,13 @@ struct ClientInfo
 };
 
 ClientInfo clients[MAX_CLIENTS];
+
+File uploadFile;
+String uploadedFileName;
+String uploadedDisplayName;
+size_t uploadedFileSize = 0;
+bool uploadFailed = false;
+String uploadError;
 
 void handleRoot() {
     File file = LittleFS.open("/index.html", "r");
@@ -53,6 +61,160 @@ void handleJS() {
     }
 
     server.streamFile(file, "application/javascript");
+    file.close();
+}
+
+String sanitizeFileName(String fileName)
+{
+    fileName.replace("\\", "/");
+
+    int slash = fileName.lastIndexOf('/');
+    if (slash >= 0)
+        fileName = fileName.substring(slash + 1);
+
+    String cleanName;
+
+    for (size_t i = 0; i < fileName.length() && cleanName.length() < 48; i++)
+    {
+        char c = fileName.charAt(i);
+
+        if ((c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9') ||
+            c == '.' || c == '-' || c == '_')
+        {
+            cleanName += c;
+        }
+        else
+        {
+            cleanName += '_';
+        }
+    }
+
+    if (cleanName == "" || cleanName == "." || cleanName == "..")
+        cleanName = "file";
+
+    return cleanName;
+}
+
+void handleFileUpload()
+{
+    HTTPUpload& upload = server.upload();
+
+    if (upload.status == UPLOAD_FILE_START)
+    {
+        uploadedDisplayName = sanitizeFileName(upload.filename);
+        uploadedFileName = String(millis()) + "_" + uploadedDisplayName;
+        uploadedFileSize = 0;
+        uploadFailed = false;
+        uploadError = "";
+
+        String path = "/uploads/" + uploadedFileName;
+        uploadFile = LittleFS.open(path, FILE_WRITE);
+
+        if (!uploadFile)
+        {
+            uploadFailed = true;
+            uploadError = "Could not create file";
+        }
+    }
+    else if (upload.status == UPLOAD_FILE_WRITE)
+    {
+        if (uploadFailed)
+            return;
+
+        if (uploadedFileSize + upload.currentSize > MAX_FILE_SIZE)
+        {
+            uploadFailed = true;
+            uploadError = "File exceeds 200 KB limit";
+            uploadFile.close();
+            LittleFS.remove("/uploads/" + uploadedFileName);
+            return;
+        }
+
+        size_t written = uploadFile.write(upload.buf, upload.currentSize);
+
+        if (written != upload.currentSize)
+        {
+            uploadFailed = true;
+            uploadError = "LittleFS is full";
+            uploadFile.close();
+            LittleFS.remove("/uploads/" + uploadedFileName);
+            return;
+        }
+
+        uploadedFileSize += written;
+    }
+    else if (upload.status == UPLOAD_FILE_END)
+    {
+        if (uploadFile)
+            uploadFile.close();
+    }
+    else if (upload.status == UPLOAD_FILE_ABORTED)
+    {
+        uploadFailed = true;
+        uploadError = "Upload cancelled";
+
+        if (uploadFile)
+            uploadFile.close();
+
+        LittleFS.remove("/uploads/" + uploadedFileName);
+    }
+}
+
+void handleUploadComplete()
+{
+    JsonDocument doc;
+
+    if (uploadFailed)
+    {
+        doc["ok"] = false;
+        doc["error"] = uploadError;
+
+        String json;
+        serializeJson(doc, json);
+        server.send(uploadError.indexOf("200 KB") >= 0 ? 413 : 500,
+                    "application/json", json);
+        return;
+    }
+
+    doc["ok"] = true;
+    doc["name"] = uploadedDisplayName;
+    doc["size"] = uploadedFileSize;
+    doc["url"] = "/files?name=" + uploadedFileName;
+
+    String json;
+    serializeJson(doc, json);
+    server.send(200, "application/json", json);
+}
+
+void handleFileDownload()
+{
+    if (!server.hasArg("name"))
+    {
+        server.send(400, "text/plain", "Missing file name");
+        return;
+    }
+
+    String storedName = sanitizeFileName(server.arg("name"));
+    String path = "/uploads/" + storedName;
+
+    if (!LittleFS.exists(path))
+    {
+        server.send(404, "text/plain", "File not found");
+        return;
+    }
+
+    String downloadName = storedName;
+
+    if (server.hasArg("download"))
+        downloadName = sanitizeFileName(server.arg("download"));
+
+    File file = LittleFS.open(path, "r");
+
+    server.sendHeader("Content-Disposition",
+                      "attachment; filename=\"" + downloadName + "\"");
+    server.streamFile(file, "application/octet-stream");
     file.close();
 }
 
@@ -188,9 +350,9 @@ void handlePacket(uint8_t client, String payload)
                 return;
             }
 
-            if (type == "message")
+            if (type == "message" || type == "file")
             {
-                Serial.println("Message");
+                Serial.println(type == "message" ? "Message" : "File");
         
                 webSocket.broadcastTXT(payload);
         
@@ -253,6 +415,9 @@ void setup()
     }
     createChatLog();
 
+    if(!LittleFS.exists("/uploads"))
+        LittleFS.mkdir("/uploads");
+
     WiFi.softAP(ssid,password);
 
     Serial.print("IP Address : ");
@@ -263,6 +428,10 @@ void setup()
     server.on("/style.css",handleCSS);
 
     server.on("/script.js",handleJS);
+
+    server.on("/upload", HTTP_POST, handleUploadComplete, handleFileUpload);
+
+    server.on("/files", HTTP_GET, handleFileDownload);
 
     server.begin();
 

@@ -73,11 +73,61 @@
 
 <div class="bottom">
 
+<<<<<<< Updated upstream
+=======
+<button
+id="attachButton"
+class="attachButton"
+type="button"
+aria-label="Share a file"
+title="Share a file (maximum 200 KB)">
+
+📎
+
+</button>
+
+<input id="fileInput" type="file" hidden>
+
+<div id="uploadStatus" role="status" aria-live="polite"></div>
+
+<button
+id="emojiToggle"
+class="emojiToggle"
+type="button"
+aria-label="Open emoji picker"
+aria-expanded="false">
+
+😊
+
+</button>
+
+<div id="emojiPicker" class="emojiPicker" hidden>
+
+    <button type="button" data-emoji="😀">😀</button>
+    <button type="button" data-emoji="😂">😂</button>
+    <button type="button" data-emoji="😍">😍</button>
+    <button type="button" data-emoji="😎">😎</button>
+    <button type="button" data-emoji="🤔">🤔</button>
+    <button type="button" data-emoji="😢">😢</button>
+    <button type="button" data-emoji="😡">😡</button>
+    <button type="button" data-emoji="👍">👍</button>
+    <button type="button" data-emoji="👏">👏</button>
+    <button type="button" data-emoji="🙏">🙏</button>
+    <button type="button" data-emoji="❤️">❤️</button>
+    <button type="button" data-emoji="🔥">🔥</button>
+    <button type="button" data-emoji="🎉">🎉</button>
+    <button type="button" data-emoji="✅">✅</button>
+    <button type="button" data-emoji="🚀">🚀</button>
+    <button type="button" data-emoji="💬">💬</button>
+
+</div>
+
+>>>>>>> Stashed changes
 <input
 id="message"
 placeholder="Type a message...">
 
-<button onclick="send()">
+<button class="sendButton" onclick="send()" aria-label="Send message">
 
 ➤
 
